@@ -472,7 +472,9 @@ with st.sidebar:
             help=(
                 'At 36% (default), a paper that would score 0.70 without AI '
                 'scores about 0.45 when AI handles half the work. '
-                'Higher = AI use is more costly to quality.'
+                'Higher = AI use is more costly to quality. '
+                'Default calibrated to Gartenberg et al. (2026, Organization Science): '
+                '~1.28 SD quality decline at high AI use.'
             ),
         )
 
