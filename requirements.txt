@@ -1,0 +1,9 @@
+mesa>=2.0
+numpy
+scipy
+pandas
+matplotlib
+seaborn
+tqdm
+streamlit>=1.32
+python-docx
