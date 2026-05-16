@@ -217,11 +217,13 @@ def run_simulation_cached(overrides_tuple: tuple) -> tuple:
                                   if s.institution_type == inst]
                         i_paps = [p for p in period_papers
                                   if s_by_id[p.scholar_id].institution_type == inst]
-                        row[f'ai_{inst}'] = float(np.mean(
+                        row[f'ai_{inst}']      = float(np.mean(
                             [s.ai_use_level for s in i_sch]))
-                        row[f'q_{inst}']  = (float(np.mean(
+                        row[f'q_{inst}']       = (float(np.mean(
                             [p.quality for p in i_paps]))
                             if i_paps else np.nan)
+                        row[f'papersps_{inst}'] = (len(i_paps) / len(i_sch)
+                                                   if i_sch else 0.0)
                     records.append(row)
 
                 period_df = pd.DataFrame(records)
@@ -345,39 +347,107 @@ def fig_publications(end_df, baseline_df=None) -> plt.Figure:
     return fig
 
 
-def fig_tier_breakdown(end_df, baseline_df=None) -> plt.Figure:
-    """Tab 3: Stacked bar — mean T1 / T2 / T3 pubs at end of sim."""
-    fig, axes = plt.subplots(1, 2 if baseline_df is not None else 1,
-                             figsize=(10 if baseline_df is not None else 6, 4.5),
-                             sharey=True)
-    if baseline_df is None:
-        axes = [axes]
+def fig_tenure_attainment(end_df, baseline_df=None) -> plt.Figure:
+    """Publications tab (lower panel): % of scholars meeting tenure target."""
+    fig, ax = plt.subplots(figsize=(7, 3.8))
+    x     = np.arange(len(INSTITUTION_TYPES))
+    width = 0.35 if baseline_df is not None else 0.55
 
-    datasets = [(end_df, 'Custom Parameters')]
-    if baseline_df is not None:
-        datasets.append((baseline_df, 'Baseline'))
+    def _pct_met(df, inst):
+        sub = df[df['institution_type'] == inst]
+        tgt = TENURE_TARGET_MIDPOINTS[inst]
+        pct = (sub['total_pubs'] >= tgt).mean() * 100
+        se  = np.sqrt(pct/100 * (1 - pct/100) / len(sub)) * 100
+        return pct, se
 
-    tier_cols   = ['tier1_pubs', 'tier2_pubs', 'tier3_pubs']
-    tier_labels = ['Tier 1', 'Tier 2', 'Tier 3']
-    tier_colors = [COLORS['primary'], COLORS['secondary'], COLORS['gold']]
+    for i, inst in enumerate(INSTITUTION_TYPES):
+        pct, se = _pct_met(end_df, inst)
+        offset  = -width / 2 if baseline_df is not None else 0
+        ax.bar(x[i] + offset, pct, width, yerr=1.96 * se,
+               color=INST_COLORS[inst], label=f'{inst} (Custom)',
+               capsize=4, alpha=0.9)
+        if baseline_df is not None:
+            pctb, seb = _pct_met(baseline_df, inst)
+            ax.bar(x[i] + width / 2, pctb, width, yerr=1.96 * seb,
+                   color=INST_COLORS[inst], label=f'{inst} (Baseline)',
+                   capsize=4, alpha=0.45, hatch='//')
 
-    for ax, (df, title) in zip(axes, datasets):
-        x      = np.arange(len(INSTITUTION_TYPES))
-        bottoms = np.zeros(len(INSTITUTION_TYPES))
-        for col, label, color in zip(tier_cols, tier_labels, tier_colors):
-            means = [df[df['institution_type'] == inst][col].mean()
-                     for inst in INSTITUTION_TYPES]
-            ax.bar(x, means, bottom=bottoms, color=color,
-                   label=label, alpha=0.88)
-            bottoms += np.array(means)
-        ax.set_xticks(x)
-        ax.set_xticklabels(INSTITUTION_TYPES)
-        ax.set_title(title, **_FONT)
-        ax.legend(fontsize=8)
+    ax.axhline(50, color='black', linestyle=':', linewidth=1, alpha=0.5)
+    ax.set_xticks(x)
+    ax.set_xticklabels(INSTITUTION_TYPES)
+    ax.set_ylim(0, 105)
+    ax.set_ylabel('% of Scholars Meeting Target', **_FONT)
+    ax.set_title('Scholars Reaching Tenure Publication Target', **_FONT)
+    handles, labels = ax.get_legend_handles_labels()
+    seen = dict(zip(labels, handles))
+    ax.legend(seen.values(), seen.keys(), fontsize=8)
+    _ax_style(ax)
+    fig.tight_layout()
+    return fig
+
+
+def fig_efficiency(period_df, baseline_df=None) -> plt.Figure:
+    """Efficiency tab: papers submitted per scholar per period, line colored by AI use."""
+    from matplotlib.collections import LineCollection
+
+    cmap = plt.cm.plasma
+    norm = plt.Normalize(0, 1)
+
+    n_inst  = len(INSTITUTION_TYPES)
+    fig, axes = plt.subplots(2, 2, figsize=(10, 6.5), sharey=False)
+    axes = axes.flatten()
+
+    def _plot_inst(ax, df, inst, linestyle, alpha_ci):
+        sub  = df[df['period'] >= 1]
+        agg  = sub.groupby('period')
+        pers = np.array(sorted(sub['period'].unique()))
+
+        papers = agg[f'papersps_{inst}'].mean().values
+        ai_use = agg[f'ai_{inst}'].mean().values
+        sems   = agg[f'papersps_{inst}'].sem().values
+
+        # Draw CI band in institution color
+        ax.fill_between(pers, papers - 1.96*sems, papers + 1.96*sems,
+                        color=INST_COLORS[inst], alpha=alpha_ci)
+
+        # Draw line segments colored by AI use level
+        pts  = np.array([pers, papers]).T.reshape(-1, 1, 2)
+        segs = np.concatenate([pts[:-1], pts[1:]], axis=1)
+        lc   = LineCollection(segs, cmap=cmap, norm=norm,
+                              linewidth=2.5, linestyle=linestyle, zorder=3)
+        lc.set_array(ai_use[:-1])
+        ax.add_collection(lc)
+
+        ax.set_xlim(1, N_PERIODS)
+        ax.set_ylim(bottom=0)
+        ax.autoscale_view(scalex=False)
+
+    for ax, inst in zip(axes, INSTITUTION_TYPES):
+        _plot_inst(ax, period_df, inst, '-', 0.15)
+        if baseline_df is not None:
+            _plot_inst(ax, baseline_df, inst, '--', 0.07)
+
+        ax.set_title(inst, color=INST_COLORS[inst], fontweight='bold', **_FONT)
+        ax.set_xlabel('Period', **_FONT)
+        ax.set_ylabel('Papers submitted per scholar', **_FONT)
         _ax_style(ax)
 
-    axes[0].set_ylabel('Mean Publications', **_FONT)
-    fig.suptitle('Publication Tier Breakdown by Institution', **_FONT, y=1.01)
+    # Shared colorbar for AI use
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    cbar = fig.colorbar(sm, ax=axes, shrink=0.6, pad=0.02)
+    cbar.set_label('Mean AI Use Level', **_FONT)
+
+    if baseline_df is not None:
+        fig.suptitle(
+            'Submission Volume Over Time  (solid = Custom, dashed = Baseline)\n'
+            'Line color = AI use level at that period',
+            **_FONT)
+    else:
+        fig.suptitle(
+            'Submission Volume Over Time\nLine color = AI use level at that period',
+            **_FONT)
+
     fig.tight_layout()
     return fig
 
@@ -560,10 +630,10 @@ if run_clicked:
     st.success('✅ Simulation complete!')
 
     # ── 4 result tabs ─────────────────────────────────────────────────────────
-    tab_ai, tab_pubs, tab_tiers, tab_quality = st.tabs([
+    tab_ai, tab_pubs, tab_efficiency, tab_quality = st.tabs([
         '📈 AI Use Trajectory',
         '📊 Publications',
-        '🏆 Tier Breakdown',
+        '⚡ Efficiency Over Time',
         '🔬 Quality Over Time',
     ])
 
@@ -586,12 +656,23 @@ if run_clicked:
         fig = fig_publications(end_df, baseline_end_df)
         st.pyplot(fig, clear_figure=True)
 
-    with tab_tiers:
-        st.subheader('Publication Tier Breakdown')
+        st.subheader('Scholars Reaching Tenure Target')
         st.caption(
-            'Mean Tier 1 / Tier 2 / Tier 3 publications per scholar at end of simulation.'
+            '% of scholars who accumulated at least the tenure target midpoint in publications '
+            'by end of the simulation (± 95% CI). Dotted line at 50% for reference.'
         )
-        fig = fig_tier_breakdown(end_df, baseline_end_df)
+        fig = fig_tenure_attainment(end_df, baseline_end_df)
+        st.pyplot(fig, clear_figure=True)
+
+    with tab_efficiency:
+        st.subheader('Submission Volume Over Time')
+        st.caption(
+            'Mean new papers submitted per scholar each period (± 95% CI shading). '
+            'Line color shows the mean AI use level at that period — warmer colors '
+            '(yellow/orange) indicate higher AI use; cooler colors (purple/dark) '
+            'indicate lower AI use. Shows how AI adoption drives submission volume.'
+        )
+        fig = fig_efficiency(period_df, baseline_period_df)
         st.pyplot(fig, clear_figure=True)
 
     with tab_quality:

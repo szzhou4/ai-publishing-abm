@@ -21,12 +21,12 @@ INSTITUTION_DISTRIBUTION = [0.25, 0.25, 0.25, 0.25]   # must sum to 1.0
 # research_capacity drawn from Normal(mean, sd), clipped to [0.05, 0.99].
 # Calibrated so that at zero AI use (quality = research_capacity), scholars
 # produce papers in realistic quality ranges:
-#   R1:       average quality ~0.88  (range roughly 0.74–1.0)
-#   R2:       average quality ~0.78  (range roughly 0.62–0.94)
-#   Balanced: average quality ~0.67  (range roughly 0.51–0.83)
-#   Teaching: average quality ~0.55  (range roughly 0.39–0.71)
+#   R1:       average quality ~0.80  (range roughly 0.60–1.0)
+#   R2:       average quality ~0.70  (range roughly 0.50–0.90)
+#   Balanced: average quality ~0.60  (range roughly 0.45–0.75)
+#   Teaching: average quality ~0.50  (range roughly 0.35–0.65)
 RESEARCH_CAPACITY_PARAMS = {
-    'R1':       {'mean': 0.85, 'sd': 0.05},
+    'R1':       {'mean': 0.80, 'sd': 0.10},   # v8: reduced from 0.85/0.05 (R1 was over-performing)
     'R2':       {'mean': 0.70, 'sd': 0.10},
     'Balanced': {'mean': 0.60, 'sd': 0.15},
     'Teaching': {'mean': 0.50, 'sd': 0.15},
@@ -150,23 +150,33 @@ JOURNAL_TIERS = {
 #          'ahead':  (tier1_min_quality, tier2_min_quality)}
 # 'behind' = scholar has not yet met their TIER1_PUB_TARGET
 # 'ahead'  = scholar has met or exceeded their TIER1_PUB_TARGET
-# Use 9.99 for "never submits to this tier" (quality can never reach 9.99).
+#
+# v8: All institutions now use the same quality thresholds (0.82, 0.55) for
+# tier targeting. Institution-specific behaviour emerges from differences in
+# research capacity rather than hard-coded tier exclusions. Teaching scholars
+# can now reach Tier 2 (quality ≥ 0.55) and Balanced scholars can reach Tier 1
+# (quality ≥ 0.82), though both are rare given their capacity distributions.
+# Only R1's 'behind' case retains a special rule (always attempt Tier 1 under
+# tenure pressure).
+_T1_THRESH = 0.82   # common Tier 1 quality threshold across all institutions
+_T2_THRESH = 0.55   # common Tier 2 quality threshold across all institutions
+
 TIER_THRESHOLDS = {
     'R1': {
-        'behind': (0.00, 0.00),  # behind Tier 1 target: always Tier 1
-        'ahead':  (0.85, 0.60),  # met target: Tier 1 only for exceptional papers
+        'behind': (0.00, 0.00),          # tenure pressure: always attempt Tier 1
+        'ahead':  (_T1_THRESH, _T2_THRESH),
     },
     'R2': {
-        'behind': (0.82, 0.55),  # R2 has no Tier 1 target; these apply always
-        'ahead':  (0.82, 0.55),
+        'behind': (_T1_THRESH, _T2_THRESH),
+        'ahead':  (_T1_THRESH, _T2_THRESH),
     },
     'Balanced': {
-        'behind': (9.99, 0.45),  # never Tier 1; Tier 2 for quality ≥ 0.45; Tier 3 otherwise
-        'ahead':  (9.99, 0.45),  # lowered from 0.60 so more papers attempt T2 first
+        'behind': (_T1_THRESH, _T2_THRESH),
+        'ahead':  (_T1_THRESH, _T2_THRESH),
     },
     'Teaching': {
-        'behind': (9.99, 9.99),  # always Tier 3
-        'ahead':  (9.99, 9.99),
+        'behind': (_T1_THRESH, _T2_THRESH),
+        'ahead':  (_T1_THRESH, _T2_THRESH),
     },
 }
 
