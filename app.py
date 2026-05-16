@@ -556,7 +556,7 @@ with st.sidebar:
         )
         quality_pct = st.slider(
             'Quality reduction at 50% AI use (%)',
-            min_value=16, max_value=70, value=_DEFAULT_QUAL_PCT, step=1,
+            min_value=5, max_value=70, value=_DEFAULT_QUAL_PCT, step=1,
             help=(
                 'At 36% (default), a paper that would score 0.70 without AI '
                 'scores about 0.45 when AI handles half the work. '
