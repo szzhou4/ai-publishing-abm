@@ -450,11 +450,13 @@ def fig_efficiency(period_df, baseline_df=None) -> plt.Figure:
         ax.set_ylabel('Papers submitted per scholar', **_FONT)
         _ax_style(ax)
 
-    # Shared colorbar for AI use
+    # Shared colorbar — dedicated axis on the far right to avoid squishing subplots
+    fig.subplots_adjust(right=0.85, hspace=0.45, wspace=0.35)
+    cbar_ax = fig.add_axes([0.88, 0.18, 0.025, 0.62])
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])
-    cbar = fig.colorbar(sm, ax=axes, shrink=0.6, pad=0.02)
-    cbar.set_label('Mean AI Use Level', **_FONT)
+    cbar = fig.colorbar(sm, cax=cbar_ax)
+    cbar.set_label('Mean AI Use Level', fontsize=10)
 
     if baseline_df is not None:
         fig.suptitle(
@@ -466,7 +468,6 @@ def fig_efficiency(period_df, baseline_df=None) -> plt.Figure:
             'Submission Volume Over Time\nLine color = AI use level at that period',
             **_FONT)
 
-    fig.tight_layout()
     return fig
 
 
