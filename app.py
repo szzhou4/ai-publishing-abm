@@ -32,7 +32,22 @@ os.chdir(_HERE)
 
 # ── Lazy module import (after path setup) ────────────────────────────────────
 import config
-from run_scenarios import apply_overrides, restore_overrides
+
+def apply_overrides(overrides: dict) -> dict:
+    """Patch config module with override values; return originals for restoration."""
+    saved = {}
+    for key, new_val in overrides.items():
+        if not hasattr(config, key):
+            raise ValueError(f"Unknown config parameter: '{key}'")
+        saved[key] = getattr(config, key)
+        setattr(config, key, new_val)
+    return saved
+
+def restore_overrides(saved: dict):
+    """Restore config module to its original values."""
+    for key, old_val in saved.items():
+        setattr(config, key, old_val)
+
 from run_simulation import (
     initialize_scholars, initialize_journals, period_zero_row,
     INSTITUTION_TYPES, INST_COLORS,

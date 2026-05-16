@@ -39,7 +39,7 @@ RESEARCH_CAPACITY_PARAMS = {
 # counts beyond new production. Future versions should implement a resubmission
 # queue so that rejected papers can be re-directed to lower-tier journals.
 BASE_PRODUCTION_RATE = {
-    'R1':       1.500,   # ~3 new submissions/year  (v9: reduced from 2.0)
+    'R1':       2.000,   # ~4 new submissions/year
     'R2':       1.500,   # ~3 new submissions/year
     'Balanced': 1.000,   # ~2 new submissions/year
     'Teaching': 0.500,   # ~1 new submission/year

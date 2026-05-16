@@ -226,13 +226,13 @@ body(
 add_table(
     headers=['Institution', 'Base rate', 'At ai=0', 'At ai=0.5', 'At ai=1.0'],
     rows=[
-        ['R1',       '1.500  ★', '1.5/period', '2.12/period', '3.0/period'],
+        ['R1',       '2.000', '2.0/period', '2.83/period', '4.0/period'],
         ['R2',       '1.500',    '1.5/period', '2.12/period', '3.0/period'],
         ['Balanced', '1.000',    '1.0/period', '1.41/period', '2.0/period'],
         ['Teaching', '0.500',    '0.5/period', '0.71/period', '1.0/period'],
     ]
 )
-body('★ R1 base rate reduced from 2.0 to 1.5 (v9) to address over-production.', italic=True)
+
 
 heading('2e  Tenure Targets (TENURE_TARGET_MIDPOINTS)', level=2, color=SECONDARY)
 body(
@@ -626,7 +626,6 @@ add_table(
         # Resubmission
         ['MAX_TIER_ATTEMPTS',    '3', '§7c'],
         ['MAX_RESUB_PER_PERIOD', '2', '§7c  v9: top-quality papers evaluated first; rest deferred'],
-        ['BASE_PRODUCTION_RATE R1', '1.500', '§2d  v9: reduced from 2.000'],
         # Initial AI use
         ['NAG_AI_VALUES',      '[0.00, 0.05, 0.15, 0.30, 0.50, 0.70]', 'Nag et al. (2025)'],
         ['NAG_AI_PROPORTIONS', '[0.145, 0.177, 0.048, 0.177, 0.258, 0.194]',
