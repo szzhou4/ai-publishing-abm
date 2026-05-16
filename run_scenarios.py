@@ -157,11 +157,14 @@ def run_scenario(name: str, overrides: dict, n_reps: int) -> tuple[pd.DataFrame,
 
             for period in range(1, N_PERIODS + 1):
 
-                # Resubmission queue
+                # Resubmission queue (capped at MAX_RESUB_PER_PERIOD; top quality first)
                 resub_outcomes = {s.scholar_id: [] for s in scholars}
                 for scholar in scholars:
-                    still = []
-                    for paper in scholar.resubmission_queue:
+                    q_sorted = sorted(scholar.resubmission_queue,
+                                      key=lambda p: p.quality, reverse=True)
+                    to_eval  = q_sorted[:config.MAX_RESUB_PER_PERIOD]
+                    still    = list(q_sorted[config.MAX_RESUB_PER_PERIOD:])
+                    for paper in to_eval:
                         journals[paper.journal_tier].evaluate(paper, rng)
                         resub_outcomes[scholar.scholar_id].append(paper.published)
                         if paper.published:

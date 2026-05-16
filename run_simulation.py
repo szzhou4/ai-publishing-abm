@@ -59,6 +59,7 @@ from config import (
     JOURNAL_TIERS, COLORS, INST_COLORS,
     TIER1_PUB_TARGETS,
     MAX_TIER_ATTEMPTS,
+    MAX_RESUB_PER_PERIOD,
     T3_FLOOR_FRACTION,
 )
 from functions.quality import compute_quality, assign_journal_tier
@@ -135,8 +136,14 @@ def run_one_replication(seed: int) -> tuple:
         resub_outcomes = {s.scholar_id: [] for s in scholars}
 
         for scholar in scholars:
-            still_in_queue = []
-            for paper in scholar.resubmission_queue:
+            # Cap resubmissions: sort by quality (desc), evaluate top N,
+            # defer the rest to next period without evaluation or RL signal.
+            q_sorted  = sorted(scholar.resubmission_queue,
+                               key=lambda p: p.quality, reverse=True)
+            to_eval   = q_sorted[:MAX_RESUB_PER_PERIOD]
+            still_in_queue = list(q_sorted[MAX_RESUB_PER_PERIOD:])   # deferred
+
+            for paper in to_eval:
                 journals[paper.journal_tier].evaluate(paper, rng)
                 resub_outcomes[scholar.scholar_id].append(paper.published)
                 if paper.published:

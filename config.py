@@ -39,7 +39,7 @@ RESEARCH_CAPACITY_PARAMS = {
 # counts beyond new production. Future versions should implement a resubmission
 # queue so that rejected papers can be re-directed to lower-tier journals.
 BASE_PRODUCTION_RATE = {
-    'R1':       2.000,   # ~4 new submissions/year
+    'R1':       1.500,   # ~3 new submissions/year  (v9: reduced from 2.0)
     'R2':       1.500,   # ~3 new submissions/year
     'Balanced': 1.000,   # ~2 new submissions/year
     'Teaching': 0.500,   # ~1 new submission/year
@@ -111,7 +111,10 @@ T3_FLOOR_FRACTION = {
 # successive rejections at one tier, the paper downgrades to the next tier; if
 # already at Tier 3 it is abandoned. Resubmissions do NOT count toward
 # papers_per_period but DO count toward publications and the RL signal when accepted.
-MAX_TIER_ATTEMPTS = 3    # rejections at one tier before downgrading
+MAX_TIER_ATTEMPTS    = 3   # rejections at one tier before downgrading
+MAX_RESUB_PER_PERIOD = 2   # max resubmissions evaluated per scholar per period;
+                           # excess papers (sorted by quality descending) carry
+                           # over to the next period without evaluation
 
 # ── Quality function parameters (piecewise; Gartenberg et al., 2026 calibration) ─
 AI_LOW_THRESHOLD  = 0.30   # below: linear penalty; above: nonlinear
