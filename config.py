@@ -21,12 +21,12 @@ INSTITUTION_DISTRIBUTION = [0.25, 0.25, 0.25, 0.25]   # must sum to 1.0
 # research_capacity drawn from Normal(mean, sd), clipped to [0.05, 0.99].
 # Calibrated so that at zero AI use (quality = research_capacity), scholars
 # produce papers in realistic quality ranges:
-#   R1:       average quality ~0.80  (range roughly 0.60–1.0)
+#   R1:       average quality ~0.80  (range roughly 0.70–0.90)
 #   R2:       average quality ~0.70  (range roughly 0.50–0.90)
 #   Balanced: average quality ~0.60  (range roughly 0.45–0.75)
 #   Teaching: average quality ~0.50  (range roughly 0.35–0.65)
 RESEARCH_CAPACITY_PARAMS = {
-    'R1':       {'mean': 0.80, 'sd': 0.10},   # v8: reduced from 0.85/0.05 (R1 was over-performing)
+    'R1':       {'mean': 0.80, 'sd': 0.05},   # v8: mean reduced from 0.85; SD back to 0.05
     'R2':       {'mean': 0.70, 'sd': 0.10},
     'Balanced': {'mean': 0.60, 'sd': 0.15},
     'Teaching': {'mean': 0.50, 'sd': 0.15},
@@ -46,12 +46,13 @@ BASE_PRODUCTION_RATE = {
 }
 
 # ── Tenure targets ─────────────────────────────────────────────────────────────
-# midpoint used for publication-pressure calculation
+# Fixed publication counts required for tenure (v8: changed from ranges to fixed targets).
+# Used in RL pressure formula and tenure-attainment figures.
 TENURE_TARGET_MIDPOINTS = {
-    'R1':       10,   # target range 8–12
-    'R2':        9,   # target range 6–12
-    'Balanced':  6,   # target range 4–8
-    'Teaching':  2,   # target range 1–3
+    'R1':       10,
+    'R2':        8,
+    'Balanced':  5,
+    'Teaching':  2,
 }
 
 # ── Initial AI use distribution (Nag, Leung, Zhou & Belwalkar, 2025) ───────────
@@ -132,7 +133,7 @@ AI_HIGH_EXPONENT  = 1.50   # exponent for nonlinear penalty (>1 = accelerating)
 #   quality 0.90 → ~89%
 #   quality 0.95 → ~96%  (near 100%, as intended)
 JOURNAL_TIERS = {
-    1: {'base_accept_prob': 0.05, 'name': 'Top Tier'},
+    1: {'base_accept_prob': 0.03, 'name': 'Top Tier'},    # v8: tightened from 5%
     2: {'base_accept_prob': 0.15, 'name': 'Mid Tier'},
     3: {'base_accept_prob': 0.30, 'name': 'Lower Tier'},
 }
@@ -184,8 +185,8 @@ TIER_THRESHOLDS = {
 # R1 scholars target Tier 1 until this count is reached; then switch to
 # quality-based targeting. Set to 0 for institutions with no Tier 1 requirement.
 TIER1_PUB_TARGETS = {
-    'R1':       4,   # target range 3–6; switch to quality-based targeting at midpoint
-    'R2':       2,   # target range 1–3; midpoint
+    'R1':       3,   # v8: fixed T1 requirement (was 4); switch to quality-based targeting once met
+    'R2':       1,   # v8: fixed T1 requirement (was 2)
     'Balanced': 0,
     'Teaching': 0,
 }
@@ -201,9 +202,9 @@ TIER1_PUB_TARGETS = {
 # Note: R1 also expects NO Tier 3 publications (enforced primarily via tier
 # targeting; R1 scholars with mean quality 0.85 rarely reach T3 thresholds).
 TIER_PRESSURE_TARGETS = {
-    'R1':       {'tier': 1, 'mid': 4},
-    'R2':       {'tier': 1, 'mid': 2},
-    'Balanced': {'tier': 2, 'mid': 3},
+    'R1':       {'tier': 1, 'mid': 3},   # v8: 3 T1 pubs required (was 4)
+    'R2':       {'tier': 1, 'mid': 1},   # v8: 1 T1 pub required (was 2)
+    'Balanced': {'tier': 2, 'mid': 2},   # v8: 2 T2 pubs required (was 3)
     'Teaching': None,
 }
 
@@ -214,9 +215,9 @@ TIER_PRESSURE_TARGETS = {
 # (1 − base_accept_prob) quantile of this distribution.
 #
 # With QUALITY_DIST_MEAN=0.50, QUALITY_DIST_SD=0.20:
-#   Tier 1 (top  5%): threshold = 0.50 + z_{0.95} × 0.20 = 0.829
-#   Tier 2 (top 15%): threshold = 0.50 + z_{0.85} × 0.20 = 0.707
-#   Tier 3 (top 30%): threshold = 0.50 + z_{0.70} × 0.20 = 0.605
+#   Tier 1 (top  3%): threshold = 0.50 + z_{0.97} × 0.20 ≈ 0.876  (v8: was 0.829 at 5%)
+#   Tier 2 (top 15%): threshold = 0.50 + z_{0.85} × 0.20 ≈ 0.707
+#   Tier 3 (top 30%): threshold = 0.50 + z_{0.70} × 0.20 ≈ 0.605
 #
 # At acceptance, Gaussian noise (QUALITY_NOISE_SD = 0.10) is added to the paper's
 # quality before comparing to the threshold, capturing reviewer randomness and
