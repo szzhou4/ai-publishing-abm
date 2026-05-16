@@ -349,18 +349,25 @@ add_table(
 body(
     'Note: Quality is clipped to [0.01, 0.99] after computation. '
     'At ai_use = 0: quality = research_capacity. '
-    'At ai_use = 1: quality ≈ research_capacity − 2.53 (can be negative before clipping).'
+    'At ai_use = 1: penalty ≈ 1.48 → quality always negative before clipping. '
+    'Tier thresholds for reference: T1 ≥ 0.876 (accept), T2 ≥ 0.55 (submit), T1 submit ≥ 0.82.'
 )
 
 body('Representative quality values by institution × AI use level:', space_after=2)
 add_table(
     headers=['Institution (mean capacity)', 'ai=0', 'ai=0.30', 'ai=0.50', 'ai=0.70'],
     rows=[
-        ['R1 (0.85)',       '0.850', '0.835', '0.611', '0.354'],
-        ['R2 (0.70)',       '0.700', '0.685', '0.461', '0.204 → clipped'],
-        ['Balanced (0.60)', '0.600', '0.585', '0.361 → T3', '0.104 → clipped'],
-        ['Teaching (0.50)', '0.500', '0.485', '0.261 → T3', 'near 0 → clipped'],
+        ['R1 (0.80)',       '0.800', '0.785', '0.561', '0.152 → T3'],
+        ['R2 (0.70)',       '0.700', '0.685', '0.461 → T3', '0.052 → clipped'],
+        ['Balanced (0.60)', '0.600', '0.585', '0.361 → T3', '< 0 → clipped'],
+        ['Teaching (0.50)', '0.500 → T3', '0.485 → T3', '0.261 → T3', '< 0 → clipped'],
     ]
+)
+body(
+    'Note: Teaching scholars at ai=0 already fall below the T2 submit threshold (0.55), '
+    'so their papers route to T3 by default. Only exceptional Teaching scholars '
+    '(high research capacity draw) can reach T2.',
+    italic=True, space_after=3
 )
 
 
@@ -597,7 +604,7 @@ add_table(
         ['BASE_STEP_POS',   '0.05', '§3a  — per accepted paper'],
         ['BASE_STEP_NEG',   '0.01', '§3a  — per rejected paper'],
         ['PRESSURE_WEIGHT', '1.0',  '§3a'],
-        ['RL firing',       'Per paper (new + resubmission)', '§3  ★ changed v5→v6'],
+        ['RL firing',       'Per paper (new + resubmission)', '§3'],
         # Quality function
         ['AI_LOW_THRESHOLD', '0.30', '§4'],
         ['AI_LOW_PENALTY',   '0.05', '§4'],
@@ -620,8 +627,8 @@ add_table(
         ['T2 base accept rate','15% → threshold ≈ 0.707', '§6'],
         ['T3 base accept rate','30% → threshold ≈ 0.605', '§6'],
         # T3 avoidance
-        ['T3_FLOOR_FRACTION R1',       '0.40 ★',
-         '§7  ★ added v6 — T3 only if total_pubs < 4'],
+        ['T3_FLOOR_FRACTION R1',       '0.40',
+         '§7  T3 only if total_pubs < 4  (40% × target 10)'],
         ['T3_FLOOR_FRACTION R2/Bal/Teach', 'None', '§7  — unrestricted'],
         # Resubmission
         ['MAX_TIER_ATTEMPTS',    '3', '§7c'],
